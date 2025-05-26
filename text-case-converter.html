@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Case Converter - StartWebTools</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { padding: 20px; text-align: left; background-color: #f0f2f5; color: #333; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
+        .tool-container { max-width: 900px; margin: 20px auto; padding: 30px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #269D22; margin-bottom: 25px; text-align: center;}
+        textarea { width: 95%; min-height: 150px; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; margin-bottom: 15px; font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; font-size: 0.95em;}
+        .button-group { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        button.case-button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; font-size: 0.9em; cursor: pointer;}
+        button.case-button:hover { background-color: #0056b3; }
+        #textOutput { background-color: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; min-height: 100px; font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; font-size: 0.95em;}
+        .error { color: red; font-weight: bold; margin-bottom: 10px; }
+        a.back-link { display: inline-block; margin-top: 25px; color: #269D22; text-decoration: none; font-weight: bold;}
+        a.back-link:hover { text-decoration: underline; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="tool-container">
+        <h1>Text Case Converter</h1>
+        <label for="textInput">Enter your text:</label>
+        <textarea id="textInputCase" placeholder="Paste your text here..."></textarea>
+        
+        <div class="button-group">
+            <button class="case-button" onclick="convertToCase('upper')">UPPERCASE</button>
+            <button class="case-button" onclick="convertToCase('lower')">lowercase</button>
+            <button class="case-button" onclick="convertToCase('sentence')">Sentence case</button>
+            <button class="case-button" onclick="convertToCase('capitalized')">Capitalized Case</button>
+            <button class="case-button" onclick="convertToCase('alternating')">AlTeRnAtInG cAsE</button>
+            <button class="case-button" onclick="convertToCase('inverse')">InVeRsE CaSe</button>
+        </div>
+        
+        <label for="textOutput">Converted text:</label>
+        <textarea id="textOutputCase" readonly placeholder="Output will appear here..."></textarea>
+        <div id="errorMessageCase" class="error"></div>
+        
+        <a href="index.html" class="back-link">&larr; Back to Home</a>
+    </div>
+
+    <script>
+        function convertToCase(caseType) {
+            const inputText = document.getElementById('textInputCase').value;
+            const outputElement = document.getElementById('textOutputCase');
+            const errorElement = document.getElementById('errorMessageCase');
+            errorElement.textContent = '';
+
+            if (!inputText.trim() && caseType !== 'clear') { // Allow clear even if empty
+                errorElement.textContent = 'Input cannot be empty.';
+                outputElement.value = '';
+                return;
+            }
+
+            let result = '';
+            switch (caseType) {
+                case 'upper':
+                    result = inputText.toUpperCase();
+                    break;
+                case 'lower':
+                    result = inputText.toLowerCase();
+                    break;
+                case 'sentence':
+                    result = inputText.toLowerCase().replace(/^\s*([a-z])|([.!?]\s+)([a-z])/g, (match) => match.toUpperCase());
+                    break;
+                case 'capitalized':
+                    result = inputText.toLowerCase().replace(/\b[a-z]/g, (char) => char.toUpperCase());
+                    break;
+                case 'alternating':
+                    result = inputText.split('').map((char, i) => 
+                        i % 2 === 0 ? char.toLowerCase() : char.toUpperCase()
+                    ).join('');
+                    break;
+                case 'inverse':
+                    result = inputText.split('').map(char => 
+                        char === char.toUpperCase() ? char.toLowerCase() : char.toUpperCase()
+                    ).join('');
+                    break;
+                default:
+                    result = inputText;
+            }
+            outputElement.value = result;
+        }
+    </script>
+</body>
+</html> 
