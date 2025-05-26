@@ -5,8 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StartWebTools</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Popup Modal Styles (moved from text-case-converter) */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .popup-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+        }
+        .popup-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .popup-content input[type="email"] {
+            width: calc(100% - 22px); /* Full width minus padding/border */
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .popup-content button {
+            background-color: #269D22;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .popup-content button:hover {
+            background-color: #1e7e1b;
+        }
+        .popup-error {
+            color: red;
+            font-size: 0.9em;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
+    <!-- Email Popup Modal -->
+    <div id="emailPopup" class="popup-overlay">
+        <div class="popup-content">
+            <h2>Access Our Tools</h2>
+            <p>Please enter your email to continue:</p>
+            <input type="email" id="popupEmailInput" placeholder="your.email@example.com" required>
+            <div id="popupErrorMessage" class="popup-error"></div>
+            <button onclick="handlePopupSubmit()">Continue</button>
+        </div>
+    </div>
+
     <header>
         <nav>
             <div class="logo">StartWebTools</div>
@@ -139,5 +205,137 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+        // --- Email Popup Logic (Moved from text-case-converter.html and adapted) ---
+        let gclidValueGlobal = ''; // To store gclid when a CTA is clicked
+
+        // Helper function to get URL parameters from the CURRENT page (index.html)
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(window.location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // Call this when the page loads to capture gclid if present on index.html itself
+        document.addEventListener('DOMContentLoaded', function() {
+            gclidValueGlobal = getUrlParameter('gclid'); 
+        });
+
+        function showEmailPopup() {
+            // If gclid is not already captured from index.html URL, try to get it again (e.g. if ads link directly with gclid)
+            if (!gclidValueGlobal) {
+                 gclidValueGlobal = getUrlParameter('gclid');
+            }
+            document.getElementById('emailPopup').style.display = 'flex';
+        }
+
+        function hideEmailPopup() {
+            document.getElementById('emailPopup').style.display = 'none';
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function handlePopupSubmit() {
+            const emailInput = document.getElementById('popupEmailInput');
+            const email = emailInput.value.trim();
+            const popupErrorElement = document.getElementById('popupErrorMessage');
+            popupErrorElement.textContent = '';
+
+            if (!email) {
+                popupErrorElement.textContent = 'Email address is required.';
+                emailInput.focus();
+                return;
+            }
+            if (!isValidEmail(email)) {
+                popupErrorElement.textContent = 'Please enter a valid email address.';
+                emailInput.focus();
+                return;
+            }
+
+            const submitButton = document.querySelector('#emailPopup .popup-content button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+
+            fetch('https://api.ipify.org?format=json')
+                .then(response => {
+                    if (!response.ok) throw new Error('IPify fetch not ok');
+                    return response.json();
+                })
+                .then(ipData => {
+                    const ipAddress = ipData.ip || 'N/A (fetch failed)';
+                    sendDataToGoogleSheet(email, gclidValueGlobal, ipAddress, submitButton, popupErrorElement);
+                })
+                .catch(error => {
+                    console.warn('Could not fetch IP address:', error);
+                    sendDataToGoogleSheet(email, gclidValueGlobal, 'N/A (fetch error)', submitButton, popupErrorElement);
+                });
+        }
+
+        function sendDataToGoogleSheet(email, gclid, ipAddress, submitButton, popupErrorElement) {
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbywZSQTkKLEgSMtUritnXYH4Eyf1_8gWJ2pKMB6Pn7ii_VUnYGHk_SRe5tvhjQx1Un2/exec';
+            const formData = {
+                email: email,
+                userAgent: navigator.userAgent,
+                sourcePage: window.location.pathname, // This will be index.html
+                gclid: gclid,
+                ipAddress: ipAddress
+            };
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                redirect: 'follow',
+                referrerPolicy: 'no-referrer',
+                body: JSON.stringify(formData),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            })
+            .then(response => {
+                 if (!response.ok) throw new Error('Google Script submission not ok');
+                 return response.json();
+            })
+            .then(data => {
+                console.log('Success (Apps Script):', data);
+                if (data.status === 'success') {
+                    // Redirect to text-case-converter.html, carrying over gclid
+                    let redirectUrl = 'text-case-converter.html';
+                    if (gclid) {
+                        redirectUrl += '?gclid=' + encodeURIComponent(gclid);
+                    }
+                    window.location.href = redirectUrl;
+                } else {
+                    popupErrorElement.textContent = 'Submission failed: ' + (data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error in sendDataToGoogleSheet:', error);
+                popupErrorElement.textContent = 'Could not submit email. Please check connection or try again. (' + error.message + ')';
+            })
+            .finally(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Continue';
+            });
+        }
+
+        // Attach event listeners to CTA buttons to show popup
+        document.addEventListener('DOMContentLoaded', function() {
+            // Capture gclid from index.html URL when page loads
+            gclidValueGlobal = getUrlParameter('gclid'); 
+
+            const ctaButtons = document.querySelectorAll('.cta-button');
+            ctaButtons.forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.preventDefault(); // Prevent default <a> tag navigation
+                    // If gclid not captured from page load, try again from this specific link if it had one (less likely for buttons)
+                    // More robustly, gclid is captured once on page load and used.
+                    showEmailPopup();
+                });
+            });
+        });
+    </script>
 </body>
 </html> 
