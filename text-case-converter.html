@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Case Converter - StartWebTools</title>
     <link rel="stylesheet" href="style.css">
+
+    <!-- Global site tag (gtag.js) - Google Ads: AW-1006081641 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1006081641"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'AW-1006081641');
+    </script>
+
     <!-- Event snippet for smartwebtools conversion page -->
     <script>
       gtag('event', 'conversion', {
@@ -13,6 +23,7 @@
           'currency': 'USD'
       });
     </script>
+
     <style>
         body { padding: 20px; text-align: left; background-color: #f0f2f5; color: #333; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
         .tool-container { max-width: 900px; margin: 20px auto; padding: 30px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
@@ -153,7 +164,7 @@
             }
 
             // --- Send data to Google Apps Script ---
-            const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE'; // <--- PASTE YOUR WEB APP URL HERE
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbywZSQTkKLEgSMtUritnXYH4Eyf1_8gWJ2pKMB6Pn7ii_VUnYGHk_SRe5tvhjQx1Un2/exec'; // <--- PASTE YOUR WEB APP URL HERE
             const formData = {
                 email: email,
                 userAgent: navigator.userAgent,
