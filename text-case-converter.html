@@ -21,14 +21,79 @@
         .button-group { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
         button.case-button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; font-size: 0.9em; cursor: pointer;}
         button.case-button:hover { background-color: #0056b3; }
-        #textOutput { background-color: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; min-height: 100px; font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; font-size: 0.95em;}
+        #textOutputCase { background-color: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; min-height: 100px; font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; font-size: 0.95em;}
         .error { color: red; font-weight: bold; margin-bottom: 10px; }
         a.back-link { display: inline-block; margin-top: 25px; color: #269D22; text-decoration: none; font-weight: bold;}
         a.back-link:hover { text-decoration: underline; }
         label { display: block; margin-bottom: 8px; font-weight: 500; }
+
+        /* Popup Modal Styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .popup-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+        }
+        .popup-content h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .popup-content input[type="email"] {
+            width: calc(100% - 22px); /* Full width minus padding/border */
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .popup-content button {
+            background-color: #269D22;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        .popup-content button:hover {
+            background-color: #1e7e1b;
+        }
+        .popup-error {
+            color: red;
+            font-size: 0.9em;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
+    <!-- Email Popup Modal -->
+    <div id="emailPopup" class="popup-overlay">
+        <div class="popup-content">
+            <h2>Access Our Tools</h2>
+            <p>Please enter your email to continue:</p>
+            <input type="email" id="popupEmailInput" placeholder="your.email@example.com" required>
+            <div id="popupErrorMessage" class="popup-error"></div>
+            <button onclick="handlePopupSubmit()">Continue</button>
+        </div>
+    </div>
+
     <div class="tool-container">
         <h1>Text Case Converter</h1>
         <label for="textInput">Enter your text:</label>
@@ -51,6 +116,93 @@
     </div>
 
     <script>
+        window.onload = function() {
+            showEmailPopup();
+        };
+
+        function showEmailPopup() {
+            document.getElementById('emailPopup').style.display = 'flex';
+        }
+
+        function hideEmailPopup() {
+            document.getElementById('emailPopup').style.display = 'none';
+        }
+
+        function isValidEmail(email) {
+            // Basic email validation regex
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function handlePopupSubmit() {
+            const emailInput = document.getElementById('popupEmailInput');
+            const email = emailInput.value.trim();
+            const popupErrorElement = document.getElementById('popupErrorMessage');
+            popupErrorElement.textContent = ''; // Clear previous errors
+
+            if (!email) {
+                popupErrorElement.textContent = 'Email address is required.';
+                emailInput.focus();
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                popupErrorElement.textContent = 'Please enter a valid email address.';
+                emailInput.focus();
+                return;
+            }
+
+            // --- Send data to Google Apps Script ---
+            const scriptURL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE'; // <--- PASTE YOUR WEB APP URL HERE
+            const formData = {
+                email: email,
+                userAgent: navigator.userAgent,
+                sourcePage: window.location.pathname // or a fixed string like 'text-case-converter'
+            };
+
+            // Disable button to prevent multiple submissions
+            const submitButton = document.querySelector('#emailPopup .popup-content button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'cors', // Required for cross-origin requests to Apps Script
+                cache: 'no-cache',
+                redirect: 'follow',
+                referrerPolicy: 'no-referrer',
+                body: JSON.stringify(formData),
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8', // Apps Script expects text/plain for POST body with JSON.parse
+                }
+            })
+            .then(response => response.json()) // Assuming Apps Script returns JSON
+            .then(data => {
+                console.log('Success (Apps Script):', data);
+                if (data.status === 'success') {
+                    // Optionally show a success message to the user before hiding
+                    // popupErrorElement.textContent = 'Email submitted successfully!'; 
+                    // setTimeout(hideEmailPopup, 1500); // Hide after a delay
+                    hideEmailPopup();
+                } else {
+                    popupErrorElement.textContent = 'Submission failed: ' + (data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error sending to Apps Script:', error);
+                popupErrorElement.textContent = 'Could not submit email. Please check your connection or try again later.';
+            })
+            .finally(() => {
+                // Re-enable button
+                submitButton.disabled = false;
+                submitButton.textContent = 'Continue';
+            });
+
+            // localStorage.setItem('collectedEmails', JSON.stringify(emails)); // Keep or remove localStorage as a fallback/local copy if desired
+            // console.log('Email collected (localStorage):', email);
+            // hideEmailPopup(); // Moved to fetch .then() or .finally()
+        }
+
         function convertToCase(caseType) {
             const inputText = document.getElementById('textInputCase').value;
             const outputElement = document.getElementById('textOutputCase');
